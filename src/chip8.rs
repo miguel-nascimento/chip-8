@@ -2,7 +2,7 @@ use crate::ram::Ram;
 use crate::cpu::Cpu;
 use crate::display::Display;
 
-const FONT_SET: [u8; 80] = [
+const FONT_SET: [u16; 80] = [
   0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
   0x20, 0x60, 0x20, 0x20, 0x70, // 1
   0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
@@ -39,7 +39,6 @@ impl Chip8 {
 
   pub fn initialize(&mut self) {
     self.mem.load_fontset(FONT_SET);
-
   }
   
   pub fn emulate_cycle(&mut self) {
