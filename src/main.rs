@@ -1,9 +1,13 @@
-use chip_8::{cpu::Cpu, ram::Ram};
+use chip_8::{cpu::Cpu, display::Display, keyboard::Keyboard, ram::Ram};
 
 fn main() {
-  let mut ram = Ram::new();
-  let mut cpu = Cpu::new();
-  ram.write(0x200, 0x7AC0);
-  cpu.run_instruction(&mut ram);
-  println!("{:?}", cpu)
+    let mut ram = Ram::new();
+    let mut cpu = Cpu::new();
+    let mut display = Display::new();
+    let mut keyboard = Keyboard::new();
+
+    ram.write(513, 0x7A);
+    ram.write(514, 0x00BC);
+    // cpu.run_instruction(&mut ram, &mut display, &mut keyboard);
+    println!("{:?}", cpu)
 }
