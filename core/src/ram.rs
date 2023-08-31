@@ -5,11 +5,15 @@ pub struct Ram {
     memory: [u8; MEMORY_SIZE],
 }
 
-impl Ram {
-    pub fn new() -> Self {
-        Ram { memory: [0; 4096] }
+impl Default for Ram {
+    fn default() -> Self {
+        Ram {
+            memory: [0; MEMORY_SIZE],
+        }
     }
+}
 
+impl Ram {
     pub fn load_fontset(&mut self, font_set: [u8; 80]) {
         for i in 0..font_set.len() {
             self.memory[i] = font_set[i]

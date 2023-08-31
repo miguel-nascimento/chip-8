@@ -12,8 +12,8 @@ pub struct Cpu {
     register: [u8; 16],
 }
 
-impl Cpu {
-    pub fn new() -> Self {
+impl Default for Cpu {
+    fn default() -> Cpu {
         Cpu {
             stack: [0; STACK_SIZE],
             delay_timer: 0,
@@ -22,6 +22,21 @@ impl Cpu {
             sp: 0,
             i: 0,
             register: [0; 16],
+        }
+    }
+}
+
+impl Cpu {
+    pub fn tick_timers(&mut self) {
+        if self.delay_timer > 0 {
+            self.delay_timer -= 1;
+        }
+
+        if self.sound_timer > 0 {
+            if self.sound_timer == 1 {
+                println!("todo: sound beep!");
+            }
+            self.sound_timer -= 1;
         }
     }
 

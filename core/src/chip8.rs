@@ -1,5 +1,5 @@
 use crate::cpu::{Cpu, PROGRAM_START_ADDRESS};
-use crate::display::Display;
+use crate::display::{Display, SCREEN_HEIGHT, SCREEN_WIDTH};
 use crate::keyboard::Keyboard;
 use crate::ram::Ram;
 
@@ -23,6 +23,7 @@ const FONT_SET: [u8; 80] = [
 ];
 const OPCODE_SIZE: u16 = 2;
 
+#[derive(Debug)]
 enum Opcode {
     /// Clears the screen.
     _00e0,
@@ -106,7 +107,7 @@ impl TryFrom<u16> for Opcode {
             ((hex_opcode & 0xF000) >> 12),
             ((hex_opcode & 0x0F00) >> 8),
             ((hex_opcode & 0x00F0) >> 4),
-            ((hex_opcode & 0x000F) >> 2),
+            (hex_opcode & 0x000F),
         );
 
         let nnn = hex_opcode & 0x0FFF;
@@ -151,25 +152,26 @@ impl TryFrom<u16> for Opcode {
     }
 }
 
-#[derive(Debug)]
 pub struct Chip8 {
     ram: Ram,
-    cpu: Cpu,
+    pub cpu: Cpu,
     display: Display,
     keyboard: Keyboard,
 }
 
 impl Chip8 {
     pub fn new() -> Self {
-        Chip8 {
-            ram: Ram::new(),
-            cpu: Cpu::new(),
-            display: Display::new(),
-            keyboard: Keyboard::new(),
-        }
+        let mut chip = Chip8 {
+            ram: Ram::default(),
+            cpu: Cpu::default(),
+            display: Display::default(),
+            keyboard: Keyboard::default(),
+        };
+        chip.initialize();
+        chip
     }
 
-    pub fn initialize(&mut self) {
+    fn initialize(&mut self) {
         self.ram.load_fontset(FONT_SET);
     }
 
@@ -182,17 +184,37 @@ impl Chip8 {
 
     pub fn emulate_cycle(&mut self) {
         let opcode = self.fetch_and_decode().unwrap();
+
         self.run_instruction(opcode);
+    }
+
+    pub fn get_display(&self) -> &Display {
+        &self.display
+    }
+
+    pub fn keypress(&mut self, key: u8, pressed: bool) {
+        self.keyboard.press(key, pressed);
+    }
+
+    pub fn tick_timers(&mut self) {
+        self.cpu.tick_timers();
+    }
+
+    pub fn clean_keyboard(&mut self) {
+        self.keyboard.clean()
     }
 
     fn fetch_and_decode(&mut self) -> Result<Opcode, UnknownOpcodeError> {
         // Grab first half of the opcode
-        let lo = self.ram.read(self.cpu.pc) as u16;
+        let hi: u16 = self.ram.read(self.cpu.pc) as u16;
         // Grab second half of the opcode
-        let hi = self.ram.read(self.cpu.pc + 1) as u16;
+        let lo = self.ram.read(self.cpu.pc + 1) as u16;
         // Combine them
         let hex_opcode = hi << 8 | lo;
         self.cpu.pc += OPCODE_SIZE;
+        // let opcode = Opcode::try_from(hex_opcode).unwrap();
+        // println!("hex_opcode: {:x}; parsed: {:x?}", hex_opcode, opcode);
+
         Opcode::try_from(hex_opcode)
     }
 
@@ -307,7 +329,35 @@ impl Chip8 {
                 let random_number = rand::random::<u8>();
                 cpu.write_register(x, random_number & nn);
             }
-            _Dxyn(_, _, _) => todo!(), // draw
+            _Dxyn(x, y, n) => {
+                let vx = cpu.read_register(x);
+                let vy = cpu.read_register(y);
+
+                let mut flipped = false;
+
+                // Iterate over each row of our sprite
+                for y_line in 0..n {
+                    // Determine which memory address our row's data is stored
+                    let addr = cpu.i + y_line as u16;
+                    let pixels = ram.read(addr);
+                    // Iterate over each column in our row
+                    for x_line in 0..8 {
+                        // Grab current pixel's bit. If it's 1, we need to flip the pixel
+                        if (pixels & (0b1000_0000 >> x_line)) != 0 {
+                            // Sprites should wrap around screen, so apply modulo
+                            let x = (vx + x_line) as usize % SCREEN_WIDTH;
+                            let y = (vy + y_line) as usize % SCREEN_HEIGHT;
+                            // Get our pixel's index for our 1D screen array
+                            let idx = SCREEN_WIDTH * y + x;
+                            // Check if we're about to flip the pixel and set
+                            display.screen[idx] ^= true;
+                            flipped |= display.screen[idx];
+                        }
+                    }
+                }
+
+                cpu.write_register(0xF, flipped as u8);
+            }
             _Ex9e(x) => {
                 let vx = cpu.read_register(x);
                 if keyboard.is_pressed(vx) {
