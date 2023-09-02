@@ -6,6 +6,7 @@ use std::{
     fs::{self},
     io::{self},
     path::Path,
+    thread,
     time::{Duration, Instant},
 };
 
@@ -33,21 +34,21 @@ fn main() -> Result<(), Box<dyn Error>> {
     let rom = fs::read(Path::new(&cli.rom))?;
     let mut chip8 = Chip8::new();
     chip8.load(&*rom);
-    // loop {
-    //     thread::sleep(Duration::from_millis(((1.0 / 10 as f64) * 100.0) as u64));
-    //     chip8.emulate_cycle();
-    //     chip8.tick_timers();
-    //     for (idx, on) in chip8.get_display().screen.iter().enumerate() {
-    //         if *on {
-    //             print!("X");
-    //         } else {
-    //             print!(".");
-    //         }
-    //         if idx % SCREEN_WIDTH == 0 {
-    //             println!();
-    //         }
-    //     }
-    // }
+    loop {
+        thread::sleep(Duration::from_millis(((1.0 / 10 as f64) * 50.0) as u64));
+        chip8.emulate_cycle();
+        chip8.tick_timers();
+        for (idx, on) in chip8.get_display().screen.iter().enumerate() {
+            if *on {
+                print!("X");
+            } else {
+                print!(".");
+            }
+            if idx % SCREEN_WIDTH == 0 {
+                println!();
+            }
+        }
+    }
 
     // setup terminal
     enable_raw_mode()?;
@@ -57,10 +58,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut terminal = Terminal::new(backend)?;
 
     // create emulator
-    let tick_rate = Duration::from_millis(50);
+    let tick_rate = Duration::from_millis(20);
 
-    let mut chip8 = core::chip8::Chip8::new();
-    chip8.load(&*rom);
+    // let mut chip8 = core::chip8::Chip8::new();
+    // chip8.load(&*rom);
 
     // run
     let res = run_emulator(&mut terminal, chip8, tick_rate);
@@ -88,9 +89,6 @@ fn run_emulator<B: Backend>(
 ) -> io::Result<()> {
     let mut last_tick = Instant::now();
     loop {
-        chip8.emulate_cycle();
-        terminal.draw(|f| ui(f, &chip8, 1))?;
-
         let timeout = tick_rate
             .checked_sub(last_tick.elapsed())
             .unwrap_or_else(|| Duration::from_secs(0));
@@ -102,6 +100,9 @@ fn run_emulator<B: Backend>(
                 }
             }
         }
+
+        chip8.emulate_cycle();
+        terminal.draw(|f| ui(f, &chip8, 1))?;
         if last_tick.elapsed() >= tick_rate {
             chip8.tick_timers();
             chip8.clean_keyboard();

@@ -1,4 +1,4 @@
-const STACK_SIZE: usize = 0x10; // 16
+const STACK_SIZE: usize = 16;
 pub const PROGRAM_START_ADDRESS: u16 = 0x200; // 512
 
 #[derive(Debug)]

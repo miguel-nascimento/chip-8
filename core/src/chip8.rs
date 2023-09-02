@@ -2,6 +2,7 @@ use crate::cpu::{Cpu, PROGRAM_START_ADDRESS};
 use crate::display::{Display, SCREEN_HEIGHT, SCREEN_WIDTH};
 use crate::keyboard::Keyboard;
 use crate::ram::Ram;
+use std::fmt::Debug;
 
 const FONT_SET: [u8; 80] = [
     0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
@@ -95,8 +96,13 @@ enum Opcode {
     _Fx65(u8),
 }
 
-#[derive(Debug)]
 struct UnknownOpcodeError((u16, u16, u16, u16));
+
+impl Debug for UnknownOpcodeError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "UnknownOpcodeError {:x?}", self.0)
+    }
+}
 
 impl TryFrom<u16> for Opcode {
     type Error = UnknownOpcodeError;
@@ -144,6 +150,10 @@ impl TryFrom<u16> for Opcode {
             (0xE, _, 0xA, 0x1) => Ok(_Exa1(x)),
             (0xF, _, 0, 7) => Ok(_Fx07(x)),
             (0xF, _, 0, 0xA) => Ok(_Fx0a(x)),
+            (0xF, _, 1, 5) => Ok(_Fx15(x)),
+            (0xF, _, 1, 8) => Ok(_Fx18(x)),
+            (0xF, _, 1, 0xE) => Ok(_Fx1e(x)),
+            (0xF, _, 1, 0) => Ok(_Fx29(x)),
             (0xF, _, 3, 3) => Ok(_Fx33(x)),
             (0xF, _, 5, 5) => Ok(_Fx55(x)),
             (0xF, _, 6, 5) => Ok(_Fx65(x)),
@@ -154,7 +164,7 @@ impl TryFrom<u16> for Opcode {
 
 pub struct Chip8 {
     ram: Ram,
-    pub cpu: Cpu,
+    cpu: Cpu,
     display: Display,
     keyboard: Keyboard,
 }
@@ -167,12 +177,8 @@ impl Chip8 {
             display: Display::default(),
             keyboard: Keyboard::default(),
         };
-        chip.initialize();
+        chip.ram.load_fontset(FONT_SET);
         chip
-    }
-
-    fn initialize(&mut self) {
-        self.ram.load_fontset(FONT_SET);
     }
 
     pub fn load(&mut self, rom: &[u8]) {
@@ -205,13 +211,13 @@ impl Chip8 {
     }
 
     fn fetch_and_decode(&mut self) -> Result<Opcode, UnknownOpcodeError> {
-        // Grab first half of the opcode
-        let hi: u16 = self.ram.read(self.cpu.pc) as u16;
-        // Grab second half of the opcode
-        let lo = self.ram.read(self.cpu.pc + 1) as u16;
-        // Combine them
-        let hex_opcode = hi << 8 | lo;
+        // Grab the next two bytes from memory (opcode is 2 bytes long)
+        let hi = self.ram.read(self.cpu.pc);
+        let lo = self.ram.read(self.cpu.pc + 1);
+        // Combine them. Same as doing: hi << 8 | lo
+        let hex_opcode = u16::from_be_bytes([hi, lo]);
         self.cpu.pc += OPCODE_SIZE;
+
         // let opcode = Opcode::try_from(hex_opcode).unwrap();
         // println!("hex_opcode: {:x}; parsed: {:x?}", hex_opcode, opcode);
 
@@ -225,111 +231,111 @@ impl Chip8 {
         let keyboard = &mut self.keyboard;
 
         // let opcode = self.fetch_opcode(&ram).unwrap();
-        use Opcode::*;
+        use Opcode as Op;
         match opcode {
-            _00e0 => display.clear(),
-            _00ee => {
+            Op::_00e0 => display.clear(),
+            Op::_00ee => {
                 // When we enter in a subroutine, we push the current address to the stack.
                 // so to exit it, we just need to pop the last address from the stack and set the PC to it.
                 let return_addr = cpu.stack_pop();
                 cpu.pc = return_addr;
             }
-            _1nnn(nnn) => cpu.pc = nnn,
-            _2nnn(nnn) => {
+            Op::_1nnn(nnn) => cpu.pc = nnn,
+            Op::_2nnn(nnn) => {
                 // To enter in a subroutine, we push the current address to the stack.
                 cpu.stack_push(cpu.pc);
                 cpu.pc = nnn;
             }
-            _3xnn(x, nn) => {
+            Op::_3xnn(x, nn) => {
                 let vx = cpu.read_register(x);
                 if vx == nn {
                     cpu.pc += OPCODE_SIZE;
                 }
             }
-            _4xnn(x, nn) => {
+            Op::_4xnn(x, nn) => {
                 let vx = cpu.read_register(x);
                 if vx != nn {
                     cpu.pc += OPCODE_SIZE;
                 }
             }
-            _5xy0(x, y) => {
+            Op::_5xy0(x, y) => {
                 let vx = cpu.read_register(x);
                 let vy = cpu.read_register(y);
                 if vx == vy {
                     cpu.pc += OPCODE_SIZE;
                 }
             }
-            _6xnn(x, nn) => cpu.write_register(x, nn),
-            _7xnn(x, nn) => {
+            Op::_6xnn(x, nn) => cpu.write_register(x, nn),
+            Op::_7xnn(x, nn) => {
                 let vx = cpu.read_register(x);
                 cpu.write_register(x, vx.wrapping_add(nn));
             }
-            _8xy0(x, y) => {
+            Op::_8xy0(x, y) => {
                 let vy = cpu.read_register(y);
                 cpu.write_register(x, vy);
             }
-            _8xy1(x, y) => {
+            Op::_8xy1(x, y) => {
                 let or = cpu.read_register(x) | cpu.read_register(y);
                 cpu.write_register(x, or);
             }
-            _8xy2(x, y) => {
+            Op::_8xy2(x, y) => {
                 let and = cpu.read_register(x) & cpu.read_register(y);
                 cpu.write_register(x, and);
             }
-            _8xy3(x, y) => {
+            Op::_8xy3(x, y) => {
                 let xor = cpu.read_register(x) ^ cpu.read_register(y);
                 cpu.write_register(x, xor);
             }
-            _8xy4(x, y) => {
+            Op::_8xy4(x, y) => {
                 let vx = cpu.read_register(x);
                 let vy = cpu.read_register(y);
                 let (sum, overflow) = vx.overflowing_add(vy);
                 cpu.write_register(x, sum);
                 cpu.write_register(0xF, overflow as u8);
             }
-            _8xy5(x, y) => {
+            Op::_8xy5(x, y) => {
                 let vx = cpu.read_register(x);
                 let vy = cpu.read_register(y);
                 let (sub, overflow) = vx.overflowing_sub(vy);
                 cpu.write_register(x, sub);
                 cpu.write_register(0xF, overflow as u8);
             }
-            _8xy6(x, _) => {
+            Op::_8xy6(x, _) => {
                 let vx = cpu.read_register(x);
                 let least_significant_bit = vx & 1;
                 cpu.write_register(0xF, least_significant_bit);
                 cpu.write_register(x, vx >> 1);
             }
-            _8xy7(x, y) => {
+            Op::_8xy7(x, y) => {
                 let vx = cpu.read_register(x);
                 let vy = cpu.read_register(y);
                 let (sub, overflow) = vy.overflowing_sub(vx);
                 cpu.write_register(x, sub);
                 cpu.write_register(0xF, overflow as u8);
             }
-            _8xye(x, _) => {
+            Op::_8xye(x, _) => {
                 let vx = cpu.read_register(x);
                 let most_significant_bit = (vx >> 7) & 1;
                 cpu.write_register(0xF, most_significant_bit);
                 cpu.write_register(x, vx << 1);
             }
-            _9xy0(x, y) => {
+            Op::_9xy0(x, y) => {
                 let vx = cpu.read_register(x);
                 let vy = cpu.read_register(y);
                 if vx != vy {
                     cpu.pc += OPCODE_SIZE;
                 }
             }
-            _Annn(nnn) => cpu.i = nnn,
-            _Bnnn(nnn) => {
+            Op::_Annn(nnn) => cpu.i = nnn,
+            Op::_Bnnn(nnn) => {
                 let v0 = cpu.read_register(0);
                 cpu.pc = nnn + v0 as u16;
             }
-            _Cxnn(x, nn) => {
+            Op::_Cxnn(x, nn) => {
                 let random_number = rand::random::<u8>();
                 cpu.write_register(x, random_number & nn);
             }
-            _Dxyn(x, y, n) => {
+            Op::_Dxyn(x, y, n) => {
                 let vx = cpu.read_register(x);
                 let vy = cpu.read_register(y);
 
@@ -358,20 +364,20 @@ impl Chip8 {
 
                 cpu.write_register(0xF, flipped as u8);
             }
-            _Ex9e(x) => {
+            Op::_Ex9e(x) => {
                 let vx = cpu.read_register(x);
                 if keyboard.is_pressed(vx) {
                     cpu.pc += OPCODE_SIZE;
                 }
             }
-            _Exa1(x) => {
+            Op::_Exa1(x) => {
                 let vx = cpu.read_register(x);
                 if !keyboard.is_pressed(vx) {
                     cpu.pc += OPCODE_SIZE;
                 }
             }
-            _Fx07(x) => cpu.write_register(x, cpu.delay_timer),
-            _Fx0a(x) => {
+            Op::_Fx07(x) => cpu.write_register(x, cpu.delay_timer),
+            Op::_Fx0a(x) => {
                 // Wait for a key press, then store it in VX
                 let mut pressed = false;
                 for (key, is_pressed) in keyboard.iter().enumerate() {
@@ -386,34 +392,35 @@ impl Chip8 {
                     cpu.pc -= OPCODE_SIZE;
                 }
             }
-            _Fx15(x) => cpu.delay_timer = cpu.read_register(x),
-            _Fx18(x) => cpu.sound_timer = cpu.read_register(x),
-            _Fx1e(x) => {
+            Op::_Fx15(x) => cpu.delay_timer = cpu.read_register(x),
+            Op::_Fx18(x) => cpu.sound_timer = cpu.read_register(x),
+            Op::_Fx1e(x) => {
                 let vx = cpu.read_register(x);
                 cpu.i = cpu.i.wrapping_add(vx as u16);
             }
-            _Fx29(x) => {
+            Op::_Fx29(x) => {
                 let vx = cpu.read_register(x);
                 // Each character is 5 bytes long, so we multiply by 5
                 cpu.i = vx as u16 * 5;
             }
-            _Fx33(x) => {
+            // TODO: faster way to do this?
+            Op::_Fx33(x) => {
                 let vx = cpu.read_register(x);
                 let hundreds = vx / 100;
-                let tens = (vx % 100) / 10;
-                let ones = vx % 10;
+                let tens = (vx / 10) % 10;
+                let ones = (vx % 10) as u8;
                 ram.write(cpu.i, hundreds);
                 ram.write(cpu.i + 1, tens);
                 ram.write(cpu.i + 2, ones);
             }
-            _Fx55(x) => {
+            Op::_Fx55(x) => {
                 for reg in 0..=x {
-                    let value = cpu.read_register(reg);
                     let idx = cpu.i + reg as u16;
+                    let value = cpu.read_register(reg);
                     ram.write(idx, value);
                 }
             }
-            _Fx65(x) => {
+            Op::_Fx65(x) => {
                 for reg in 0..=x {
                     let idx = cpu.i + reg as u16;
                     let value = ram.read(idx);

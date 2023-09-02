@@ -1,0 +1,17 @@
+Loading ROM: 4-flags.ch8
+hex_opcode: 12a0; parsed: _1nnn(2a0)
+hex_opcode: e0; parsed: _00e0
+hex_opcode: 6a32; parsed: _6xnn(a, 32)
+hex_opcode: 6b1b; parsed: _6xnn(b, 1b)
+hex_opcode: a5f1; parsed: _Annn(5f1)
+hex_opcode: dab4; parsed: _Dxyn(a, b, 4)
+hex_opcode: 6a3a; parsed: _6xnn(a, 3a)
+hex_opcode: a5f5; parsed: _Annn(5f5)
+hex_opcode: dab4; parsed: _Dxyn(a, b, 4)
+hex_opcode: 6d00; parsed: _6xnn(d, 0)
+hex_opcode: 6e00; parsed: _6xnn(e, 0)
+hex_opcode: a5df; parsed: _Annn(5df)
+hex_opcode: 2210; parsed: _2nnn(210)
+hex_opcode: fc65; parsed: _Fx65(c)
+hex_opcode: 2276; parsed: _2nnn(276)
+hex_opcode: a53f; parsed: _Annn(53f)
