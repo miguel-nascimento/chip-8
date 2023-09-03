@@ -170,6 +170,7 @@ pub struct Chip8 {
     keyboard: Keyboard,
 }
 
+
 impl Chip8 {
     pub fn new() -> Self {
         let mut chip = Chip8 {
@@ -180,6 +181,15 @@ impl Chip8 {
         };
         chip.ram.load_fontset(FONT_SET);
         chip
+    }
+
+    pub fn reset(&mut self) -> &mut Self {
+        self.ram = Ram::default();
+        self.cpu = Cpu::default();
+        self.display = Display::default();
+        self.keyboard = Keyboard::default();
+        self.ram.load_fontset(FONT_SET);
+        self
     }
 
     pub fn load(&mut self, rom: &[u8]) {
