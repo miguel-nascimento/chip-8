@@ -34,21 +34,21 @@ fn main() -> Result<(), Box<dyn Error>> {
     let rom = fs::read(Path::new(&cli.rom))?;
     let mut chip8 = Chip8::new();
     chip8.load(&*rom);
-    loop {
-        thread::sleep(Duration::from_millis(((1.0 / 10 as f64) * 50.0) as u64));
-        chip8.emulate_cycle();
-        chip8.tick_timers();
-        for (idx, on) in chip8.get_display().screen.iter().enumerate() {
-            if *on {
-                print!("X");
-            } else {
-                print!(".");
-            }
-            if idx % SCREEN_WIDTH == 0 {
-                println!();
-            }
-        }
-    }
+    // loop {
+    //     thread::sleep(Duration::from_millis(((1.0 / 10 as f64) * 50.0) as u64));
+    //     chip8.emulate_cycle();
+    //     chip8.tick_timers();
+    //     for (idx, on) in chip8.get_display().screen.iter().enumerate() {
+    //         if *on {
+    //             print!("X");
+    //         } else {
+    //             print!(".");
+    //         }
+    //         if idx % SCREEN_WIDTH == 0 {
+    //             println!();
+    //         }
+    //     }
+    // }
 
     // setup terminal
     enable_raw_mode()?;
@@ -58,7 +58,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut terminal = Terminal::new(backend)?;
 
     // create emulator
-    let tick_rate = Duration::from_millis(20);
+    let tick_rate = Duration::from_millis(1);
 
     // let mut chip8 = core::chip8::Chip8::new();
     // chip8.load(&*rom);
@@ -89,24 +89,28 @@ fn run_emulator<B: Backend>(
 ) -> io::Result<()> {
     let mut last_tick = Instant::now();
     loop {
+        chip8.clean_keyboard();
+        
+        
         let timeout = tick_rate
-            .checked_sub(last_tick.elapsed())
-            .unwrap_or_else(|| Duration::from_secs(0));
+        .checked_sub(last_tick.elapsed())
+        .unwrap_or_else(|| Duration::from_secs(0));
         if event::poll(timeout)? {
             if let Event::Key(key) = event::read()? {
-                match key.code {
-                    KeyCode::Esc => return Ok(()),
-                    _ => key2chip(key.code, &mut chip8),
+                if let Some(code) = key2code(key.code, &mut chip8) {
+                    chip8.keypress(code, false);
                 }
-            }
-        }
+                if let KeyCode::Esc = key.code {
+                    return Ok(());
+                }
+            };
+        };
 
         chip8.emulate_cycle();
         terminal.draw(|f| ui(f, &chip8, 1))?;
         if last_tick.elapsed() >= tick_rate {
-            chip8.tick_timers();
-            chip8.clean_keyboard();
             last_tick = Instant::now();
+            chip8.tick_timers();
         }
     }
 }
@@ -134,24 +138,36 @@ fn ui<B: Backend>(f: &mut Frame<B>, chip8: &Chip8, scale: usize) {
     f.render_widget(canvas, f.size());
 }
 
-fn key2chip(keycode: KeyCode, chip8: &mut Chip8) {
+/*
+    Keyboard                    Chip-8
+    +---+---+---+---+           +---+---+---+---+
+    | 1 | 2 | 3 | 4 |           | 1 | 2 | 3 | C |
+    +---+---+---+---+           +---+---+---+---+
+    | Q | W | E | R |           | 4 | 5 | 6 | D |
+    +---+---+---+---+     =>    +---+---+---+---+
+    | A | S | D | F |           | 7 | 8 | 9 | E |
+    +---+---+---+---+           +---+---+---+---+
+    | Z | X | C | V |           | A | 0 | B | F |
+    +---+---+---+---+           +---+---+---+---+
+*/
+fn key2code(keycode: KeyCode, chip8: &mut Chip8) -> Option<u8> {
     match keycode {
-        KeyCode::Char('1') => chip8.keypress(0x1, true),
-        KeyCode::Char('2') => chip8.keypress(0x2, true),
-        KeyCode::Char('3') => chip8.keypress(0x3, true),
-        KeyCode::Char('4') => chip8.keypress(0xC, true),
-        KeyCode::Char('q') => chip8.keypress(0x4, true),
-        KeyCode::Char('w') => chip8.keypress(0x5, true),
-        KeyCode::Char('e') => chip8.keypress(0x6, true),
-        KeyCode::Char('r') => chip8.keypress(0xD, true),
-        KeyCode::Char('a') => chip8.keypress(0x7, true),
-        KeyCode::Char('s') => chip8.keypress(0x8, true),
-        KeyCode::Char('d') => chip8.keypress(0x9, true),
-        KeyCode::Char('f') => chip8.keypress(0xE, true),
-        KeyCode::Char('z') => chip8.keypress(0xA, true),
-        KeyCode::Char('x') => chip8.keypress(0x0, true),
-        KeyCode::Char('c') => chip8.keypress(0xB, true),
-        KeyCode::Char('v') => chip8.keypress(0xF, true),
-        _ => {}
+        KeyCode::Char('1') => Some(0x1),
+        KeyCode::Char('2') => Some(0x2),
+        KeyCode::Char('3') => Some(0x3),
+        KeyCode::Char('4') => Some(0xC),
+        KeyCode::Char('q') => Some(0x4),
+        KeyCode::Char('w') => Some(0x5),
+        KeyCode::Char('e') => Some(0x6),
+        KeyCode::Char('r') => Some(0xD),
+        KeyCode::Char('a') => Some(0x7),
+        KeyCode::Char('s') => Some(0x8),
+        KeyCode::Char('d') => Some(0x9),
+        KeyCode::Char('f') => Some(0xE),
+        KeyCode::Char('z') => Some(0xA),
+        KeyCode::Char('x') => Some(0x0),
+        KeyCode::Char('c') => Some(0xB),
+        KeyCode::Char('v') => Some(0xF),
+        _ => None
     }
 }
