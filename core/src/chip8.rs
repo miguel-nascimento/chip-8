@@ -2,6 +2,7 @@ use crate::cpu::{Cpu, PROGRAM_START_ADDRESS};
 use crate::display::{Display, SCREEN_HEIGHT, SCREEN_WIDTH};
 use crate::keyboard::Keyboard;
 use crate::ram::Ram;
+use std::error::Error;
 use std::fmt::Debug;
 
 const FONT_SET: [u8; 80] = [
@@ -298,26 +299,26 @@ impl Chip8 {
                 let vy = cpu.read_register(y);
                 let (sub, overflow) = vx.overflowing_sub(vy);
                 cpu.write_register(x, sub);
-                cpu.write_register(0xF, overflow as u8);
+                cpu.write_register(0xF, !overflow as u8);
             }
             Op::_8xy6(x, _) => {
                 let vx = cpu.read_register(x);
                 let least_significant_bit = vx & 1;
-                cpu.write_register(0xF, least_significant_bit);
                 cpu.write_register(x, vx >> 1);
+                cpu.write_register(0xF, least_significant_bit);
             }
             Op::_8xy7(x, y) => {
                 let vx = cpu.read_register(x);
                 let vy = cpu.read_register(y);
                 let (sub, overflow) = vy.overflowing_sub(vx);
                 cpu.write_register(x, sub);
-                cpu.write_register(0xF, overflow as u8);
+                cpu.write_register(0xF, !overflow as u8);
             }
             Op::_8xye(x, _) => {
                 let vx = cpu.read_register(x);
                 let most_significant_bit = (vx >> 7) & 1;
-                cpu.write_register(0xF, most_significant_bit);
                 cpu.write_register(x, vx << 1);
+                cpu.write_register(0xF, most_significant_bit);
             }
             Op::_9xy0(x, y) => {
                 let vx = cpu.read_register(x);
