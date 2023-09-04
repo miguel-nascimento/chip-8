@@ -1,4 +1,4 @@
-import init, { Emulator } from "../pkg/chip8_wasm";
+import init, { Emulator } from "./wasm";
 
 const WIDTH = 64;
 const HEIGHT = 32;

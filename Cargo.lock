@@ -87,27 +87,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
-name = "chip8-tui"
-version = "0.1.0"
-dependencies = [
- "clap",
- "core",
- "crossterm",
- "ratatui",
-]
-
-[[package]]
-name = "chip8-wasm"
-version = "0.1.0"
-dependencies = [
- "core",
- "getrandom",
- "js-sys",
- "wasm-bindgen",
- "web-sys",
-]
-
-[[package]]
 name = "clap"
 version = "4.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -527,6 +506,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7300fbefb4dadc1af235a9cef3737cea692a9d97e1b9cbcd4ebdae6f8868e6fb"
 
 [[package]]
+name = "tui"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "core",
+ "crossterm",
+ "ratatui",
+]
+
+[[package]]
 name = "unicode-ident"
 version = "1.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -555,6 +544,17 @@ name = "wasi"
 version = "0.11.0+wasi-snapshot-preview1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9c8d87e72b64a3b4db28d11ce29237c246188f4f51057d65a7eab63b7987e423"
+
+[[package]]
+name = "wasm"
+version = "0.1.0"
+dependencies = [
+ "core",
+ "getrandom",
+ "js-sys",
+ "wasm-bindgen",
+ "web-sys",
+]
 
 [[package]]
 name = "wasm-bindgen"

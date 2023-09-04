@@ -2,7 +2,6 @@ use crate::cpu::{Cpu, PROGRAM_START_ADDRESS};
 use crate::display::{Display, SCREEN_HEIGHT, SCREEN_WIDTH};
 use crate::keyboard::Keyboard;
 use crate::ram::Ram;
-use std::error::Error;
 use std::fmt::Debug;
 
 const FONT_SET: [u8; 80] = [
@@ -163,6 +162,7 @@ impl TryFrom<u16> for Opcode {
     }
 }
 
+#[derive(Clone)]
 pub struct Chip8 {
     ram: Ram,
     cpu: Cpu,
@@ -199,8 +199,36 @@ impl Chip8 {
         }
     }
 
+
+    #[cfg(feature = "profile")]
+    fn profile(&self) {
+        println!("pc: {:x}", self.cpu.pc);
+        println!("i: {:x}", self.cpu.i);
+        println!("registers: ");
+        for idx in 0..16 {
+            println!(" v{:x}: {:x}", idx, self.cpu.read_register(idx));
+        }
+        println!("stack: ");
+        for idx in 0..16 {
+            println!(" s{:x}: {:x}", idx, self.cpu.stack[idx]);
+        }
+        // println!("registers: ");
+    }
+
     pub fn emulate_cycle(&mut self) {
+        #[cfg(feature = "profile")]
+        let old_state = self.clone();
+
         let opcode = self.fetch_and_decode().unwrap();
+
+        #[cfg(feature = "profile")]
+        {
+            println!("==============");
+            println!("opcode: {:?}", opcode);
+            old_state.profile();
+            println!("==============");
+        }
+
 
         self.run_instruction(opcode);
     }
@@ -228,9 +256,6 @@ impl Chip8 {
         // Combine them. Same as doing: hi << 8 | lo
         let hex_opcode = u16::from_be_bytes([hi, lo]);
         self.cpu.pc += OPCODE_SIZE;
-
-        // let opcode = Opcode::try_from(hex_opcode).unwrap();
-        // println!("hex_opcode: {:x}; parsed: {:x?}", hex_opcode, opcode);
 
         Opcode::try_from(hex_opcode)
     }
@@ -308,8 +333,9 @@ impl Chip8 {
                 let vx = cpu.read_register(x);
                 let vy = cpu.read_register(y);
                 let (sub, overflow) = vx.overflowing_sub(vy);
+                let borrow = !overflow;
                 cpu.write_register(x, sub);
-                cpu.write_register(0xF, !overflow as u8);
+                cpu.write_register(0xF, borrow as u8);
             }
             Op::_8xy6(x, _) => {
                 let vx = cpu.read_register(x);
@@ -321,8 +347,9 @@ impl Chip8 {
                 let vx = cpu.read_register(x);
                 let vy = cpu.read_register(y);
                 let (sub, overflow) = vy.overflowing_sub(vx);
+                let borrow = !overflow;
                 cpu.write_register(x, sub);
-                cpu.write_register(0xF, !overflow as u8);
+                cpu.write_register(0xF, borrow as u8);
             }
             Op::_8xye(x, _) => {
                 let vx = cpu.read_register(x);
@@ -373,7 +400,11 @@ impl Chip8 {
                     }
                 }
 
-                cpu.write_register(0xF, flipped as u8);
+                if flipped {
+                    cpu.write_register(0xF, 0);
+                } else {
+                    cpu.write_register(0xF, 1);
+                }
             }
             Op::_Ex9e(x) => {
                 let vx = cpu.read_register(x);
@@ -430,6 +461,7 @@ impl Chip8 {
                     let value = cpu.read_register(reg);
                     ram.write(idx, value);
                 }
+                // cpu.i += x as u16 + 1;
             }
             Op::_Fx65(x) => {
                 for reg in 0..=x {
@@ -437,6 +469,7 @@ impl Chip8 {
                     let value = ram.read(idx);
                     cpu.write_register(reg, value);
                 }
+                // cpu.i += x as u16 + 1;
             }
         };
     }

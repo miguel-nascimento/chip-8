@@ -34,21 +34,23 @@ fn main() -> Result<(), Box<dyn Error>> {
     let rom = fs::read(Path::new(&cli.rom))?;
     let mut chip8 = Chip8::new();
     chip8.load(&*rom);
-    // loop {
-    //     thread::sleep(Duration::from_millis(((1.0 / 10 as f64) * 50.0) as u64));
-    //     chip8.emulate_cycle();
-    //     chip8.tick_timers();
-    //     for (idx, on) in chip8.get_display().screen.iter().enumerate() {
-    //         if *on {
-    //             print!("X");
-    //         } else {
-    //             print!(".");
-    //         }
-    //         if idx % SCREEN_WIDTH == 0 {
-    //             println!();
-    //         }
-    //     }
-    // }
+
+    #[cfg(feature = "profile")]
+    loop {
+        thread::sleep(Duration::from_millis(((1.0 / 10 as f64) * 50.0) as u64));
+        chip8.emulate_cycle();
+        chip8.tick_timers();
+        // for (idx, on) in chip8.get_display().screen.iter().enumerate() {
+        //     if *on {
+        //         print!("X");
+        //     } else {
+        //         print!(".");
+        //     }
+        //     if idx % SCREEN_WIDTH == 0 {
+        //         println!();
+        //     }
+        // }
+    }
 
     // setup terminal
     enable_raw_mode()?;

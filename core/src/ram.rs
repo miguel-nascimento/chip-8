@@ -1,6 +1,6 @@
 const MEMORY_SIZE: usize = 4096;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Ram {
     memory: [u8; MEMORY_SIZE],
 }

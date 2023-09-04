@@ -1,14 +1,14 @@
 const STACK_SIZE: usize = 16;
 pub const PROGRAM_START_ADDRESS: u16 = 0x200; // 512
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Cpu {
     pub delay_timer: u8,
     pub sound_timer: u8,
     pub pc: u16,
     pub sp: u8,
     pub i: u16,
-    stack: [u16; STACK_SIZE],
+    pub stack: [u16; STACK_SIZE],
     register: [u8; 16],
 }
 
@@ -34,7 +34,7 @@ impl Cpu {
 
         if self.sound_timer > 0 {
             if self.sound_timer == 1 {
-                println!("todo: sound beep!");
+                // println!("todo: sound beep!");
             }
             self.sound_timer -= 1;
         }

@@ -3,6 +3,6 @@ resolver = "2"
 
 members = [
   "core",
-  "chip8-tui",
-  "chip8-wasm"
+  "tui",
+  "wasm"
 ]

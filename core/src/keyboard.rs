@@ -2,7 +2,7 @@ use std::ops::Deref;
 
 const NUM_KEYS: usize = 16;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Keyboard {
     keys: [bool; NUM_KEYS],
 }

@@ -1,7 +1,7 @@
 pub const SCREEN_WIDTH: usize = 64;
 pub const SCREEN_HEIGHT: usize = 32;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Display {
     // 64px wide and 32px tall
     pub screen: [bool; SCREEN_WIDTH * SCREEN_HEIGHT],
