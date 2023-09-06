@@ -1,4 +1,4 @@
-import init, { Emulator } from "./wasm";
+import init, { Emulator } from "./wasm.js";
 
 const WIDTH = 64;
 const HEIGHT = 32;
@@ -7,7 +7,7 @@ const SCALE = 15;
 const BG_COLOR = "#000000";
 const PRIMARY_COLOR = "#FFFFFF";
 
-const TICKS_PER_FRAME = 15;
+const TICKS_PER_FRAME = 10;
 let last_tick = 0;
 
 const romInput = document.getElementById("rom");
