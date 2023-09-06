@@ -153,7 +153,7 @@ impl TryFrom<u16> for Opcode {
             (0xF, _, 1, 5) => Ok(_Fx15(x)),
             (0xF, _, 1, 8) => Ok(_Fx18(x)),
             (0xF, _, 1, 0xE) => Ok(_Fx1e(x)),
-            (0xF, _, 1, 0) => Ok(_Fx29(x)),
+            (0xF, _, 2, 9) => Ok(_Fx29(x)),
             (0xF, _, 3, 3) => Ok(_Fx33(x)),
             (0xF, _, 5, 5) => Ok(_Fx55(x)),
             (0xF, _, 6, 5) => Ok(_Fx65(x)),
@@ -205,22 +205,16 @@ impl Chip8 {
         println!("pc: {:x}", self.cpu.pc);
         println!("i: {:x}", self.cpu.i);
         println!("registers: ");
-        for idx in 0..16 {
-            println!(" v{:x}: {:x}", idx, self.cpu.read_register(idx));
-        }
+        self.cpu.stack_register();
         println!("stack: ");
-        for idx in 0..16 {
-            println!(" s{:x}: {:x}", idx, self.cpu.stack[idx]);
-        }
-        // println!("registers: ");
+        self.cpu.stack_profile()
     }
 
     pub fn emulate_cycle(&mut self) {
         #[cfg(feature = "profile")]
         let old_state = self.clone();
-
-        let opcode = self.fetch_and_decode().unwrap();
-
+        
+        let opcode = self.fetch_and_decode();
         #[cfg(feature = "profile")]
         {
             println!("==============");
@@ -229,8 +223,11 @@ impl Chip8 {
             println!("==============");
         }
 
-
-        self.run_instruction(opcode);
+        match opcode {
+            Ok(opcode) =>  self.run_instruction(opcode),
+            // Err(_) => self.cpu.pc += OPCODE_SIZE,
+            Err(err) => panic!("Unknown opcode: {:?}", err),
+        }
     }
 
     pub fn get_display(&self) -> &Display {
@@ -255,7 +252,6 @@ impl Chip8 {
         let lo = self.ram.read(self.cpu.pc + 1);
         // Combine them. Same as doing: hi << 8 | lo
         let hex_opcode = u16::from_be_bytes([hi, lo]);
-        self.cpu.pc += OPCODE_SIZE;
 
         Opcode::try_from(hex_opcode)
     }
@@ -266,33 +262,40 @@ impl Chip8 {
         let display = &mut self.display;
         let keyboard = &mut self.keyboard;
 
-        // let opcode = self.fetch_opcode(&ram).unwrap();
         use Opcode as Op;
         match opcode {
-            Op::_00e0 => display.clear(),
+            Op::_00e0 =>{ 
+                display.clear();
+                cpu.pc += OPCODE_SIZE;
+            },
             Op::_00ee => {
                 // When we enter in a subroutine, we push the current address to the stack.
                 // so to exit it, we just need to pop the last address from the stack and set the PC to it.
                 let return_addr = cpu.stack_pop();
                 cpu.pc = return_addr;
+                cpu.pc += OPCODE_SIZE;
             }
             Op::_1nnn(nnn) => cpu.pc = nnn,
             Op::_2nnn(nnn) => {
-                // To enter in a subroutine, we push the current address to the stack.
+                // To enter in a subroutine, we push the next address to the stack.
                 cpu.stack_push(cpu.pc);
                 cpu.pc = nnn;
+                
             }
             Op::_3xnn(x, nn) => {
                 let vx = cpu.read_register(x);
                 if vx == nn {
                     cpu.pc += OPCODE_SIZE;
                 }
+                cpu.pc += OPCODE_SIZE;
             }
             Op::_4xnn(x, nn) => {
                 let vx = cpu.read_register(x);
                 if vx != nn {
                     cpu.pc += OPCODE_SIZE;
                 }
+                cpu.pc += OPCODE_SIZE;
+
             }
             Op::_5xy0(x, y) => {
                 let vx = cpu.read_register(x);
@@ -300,27 +303,38 @@ impl Chip8 {
                 if vx == vy {
                     cpu.pc += OPCODE_SIZE;
                 }
+                cpu.pc += OPCODE_SIZE;
+
             }
-            Op::_6xnn(x, nn) => cpu.write_register(x, nn),
+            Op::_6xnn(x, nn) => {
+                cpu.write_register(x, nn);
+                cpu.pc += OPCODE_SIZE;
+            },
             Op::_7xnn(x, nn) => {
                 let vx = cpu.read_register(x);
                 cpu.write_register(x, vx.wrapping_add(nn));
+                cpu.pc += OPCODE_SIZE;
             }
             Op::_8xy0(x, y) => {
                 let vy = cpu.read_register(y);
                 cpu.write_register(x, vy);
+                cpu.pc += OPCODE_SIZE;
             }
             Op::_8xy1(x, y) => {
                 let or = cpu.read_register(x) | cpu.read_register(y);
                 cpu.write_register(x, or);
+                cpu.pc += OPCODE_SIZE;
+
             }
             Op::_8xy2(x, y) => {
                 let and = cpu.read_register(x) & cpu.read_register(y);
                 cpu.write_register(x, and);
+                cpu.pc += OPCODE_SIZE;
             }
             Op::_8xy3(x, y) => {
                 let xor = cpu.read_register(x) ^ cpu.read_register(y);
                 cpu.write_register(x, xor);
+                cpu.pc += OPCODE_SIZE;
             }
             Op::_8xy4(x, y) => {
                 let vx = cpu.read_register(x);
@@ -328,6 +342,7 @@ impl Chip8 {
                 let (sum, overflow) = vx.overflowing_add(vy);
                 cpu.write_register(x, sum);
                 cpu.write_register(0xF, overflow as u8);
+                cpu.pc += OPCODE_SIZE;
             }
             Op::_8xy5(x, y) => {
                 let vx = cpu.read_register(x);
@@ -336,12 +351,14 @@ impl Chip8 {
                 let borrow = !overflow;
                 cpu.write_register(x, sub);
                 cpu.write_register(0xF, borrow as u8);
+                cpu.pc += OPCODE_SIZE;
             }
             Op::_8xy6(x, _) => {
                 let vx = cpu.read_register(x);
                 let least_significant_bit = vx & 1;
                 cpu.write_register(x, vx >> 1);
                 cpu.write_register(0xF, least_significant_bit);
+                cpu.pc += OPCODE_SIZE;
             }
             Op::_8xy7(x, y) => {
                 let vx = cpu.read_register(x);
@@ -350,12 +367,14 @@ impl Chip8 {
                 let borrow = !overflow;
                 cpu.write_register(x, sub);
                 cpu.write_register(0xF, borrow as u8);
+                cpu.pc += OPCODE_SIZE;
             }
             Op::_8xye(x, _) => {
                 let vx = cpu.read_register(x);
                 let most_significant_bit = (vx >> 7) & 1;
                 cpu.write_register(x, vx << 1);
                 cpu.write_register(0xF, most_significant_bit);
+                cpu.pc += OPCODE_SIZE;
             }
             Op::_9xy0(x, y) => {
                 let vx = cpu.read_register(x);
@@ -363,8 +382,12 @@ impl Chip8 {
                 if vx != vy {
                     cpu.pc += OPCODE_SIZE;
                 }
+                cpu.pc += OPCODE_SIZE;
             }
-            Op::_Annn(nnn) => cpu.i = nnn,
+            Op::_Annn(nnn) => {
+                cpu.i = nnn;
+                cpu.pc += OPCODE_SIZE;
+            },
             Op::_Bnnn(nnn) => {
                 let v0 = cpu.read_register(0);
                 cpu.pc = nnn + v0 as u16;
@@ -372,6 +395,7 @@ impl Chip8 {
             Op::_Cxnn(x, nn) => {
                 let random_number = rand::random::<u8>();
                 cpu.write_register(x, random_number & nn);
+                cpu.pc += OPCODE_SIZE;
             }
             Op::_Dxyn(x, y, n) => {
                 let vx = cpu.read_register(x);
@@ -381,17 +405,17 @@ impl Chip8 {
 
                 // Iterate over each row of our sprite
                 for y_line in 0..n {
-                    // Determine which memory address our row's data is stored
+                    // Determine which memory address the row data is stored
                     let addr = cpu.i + y_line as u16;
                     let pixels = ram.read(addr);
                     // Iterate over each column in our row
                     for x_line in 0..8 {
-                        // Grab current pixel's bit. If it's 1, we need to flip the pixel
+                        // Grab current pixel bit. If it's 1, we need to flip the pixel
                         if (pixels & (0b1000_0000 >> x_line)) != 0 {
-                            // Sprites should wrap around screen, so apply modulo
+                            // Modulo for wrapping effect
                             let x = (vx + x_line) as usize % SCREEN_WIDTH;
                             let y = (vy + y_line) as usize % SCREEN_HEIGHT;
-                            // Get our pixel's index for our 1D screen array
+
                             let idx = SCREEN_WIDTH * y + x;
                             // Check if we're about to flip the pixel and set
                             display.screen[idx] ^= true;
@@ -405,20 +429,26 @@ impl Chip8 {
                 } else {
                     cpu.write_register(0xF, 1);
                 }
+                cpu.pc += OPCODE_SIZE;
             }
             Op::_Ex9e(x) => {
                 let vx = cpu.read_register(x);
                 if keyboard.is_pressed(vx) {
                     cpu.pc += OPCODE_SIZE;
                 }
+                cpu.pc += OPCODE_SIZE;
             }
             Op::_Exa1(x) => {
                 let vx = cpu.read_register(x);
                 if !keyboard.is_pressed(vx) {
                     cpu.pc += OPCODE_SIZE;
                 }
+                cpu.pc += OPCODE_SIZE;
             }
-            Op::_Fx07(x) => cpu.write_register(x, cpu.delay_timer),
+            Op::_Fx07(x) => {
+                cpu.write_register(x, cpu.delay_timer);
+                cpu.pc += OPCODE_SIZE;
+            },
             Op::_Fx0a(x) => {
                 // Wait for a key press, then store it in VX
                 let mut pressed = false;
@@ -430,20 +460,27 @@ impl Chip8 {
                     }
                 }
                 // If no key is pressed, we need to repeat the instruction
-                if !pressed {
-                    cpu.pc -= OPCODE_SIZE;
+                if pressed {
+                    cpu.pc += OPCODE_SIZE;
+                    
                 }
             }
-            Op::_Fx15(x) => cpu.delay_timer = cpu.read_register(x),
-            Op::_Fx18(x) => cpu.sound_timer = cpu.read_register(x),
+            Op::_Fx15(x) => {cpu.delay_timer = cpu.read_register(x); 
+                cpu.pc += OPCODE_SIZE;
+            },
+            Op::_Fx18(x) => {cpu.sound_timer = cpu.read_register(x); 
+                cpu.pc += OPCODE_SIZE;
+            },
             Op::_Fx1e(x) => {
                 let vx = cpu.read_register(x);
                 cpu.i = cpu.i.wrapping_add(vx as u16);
+                cpu.pc += OPCODE_SIZE;
             }
             Op::_Fx29(x) => {
                 let vx = cpu.read_register(x);
                 // Each character is 5 bytes long, so we multiply by 5
                 cpu.i = vx as u16 * 5;
+                cpu.pc += OPCODE_SIZE;
             }
             // TODO: faster way to do this?
             Op::_Fx33(x) => {
@@ -451,9 +488,12 @@ impl Chip8 {
                 let hundreds = vx / 100;
                 let tens = (vx / 10) % 10;
                 let ones = (vx % 10) as u8;
+
                 ram.write(cpu.i, hundreds);
                 ram.write(cpu.i + 1, tens);
                 ram.write(cpu.i + 2, ones);
+
+                cpu.pc += OPCODE_SIZE;
             }
             Op::_Fx55(x) => {
                 for reg in 0..=x {
@@ -461,7 +501,9 @@ impl Chip8 {
                     let value = cpu.read_register(reg);
                     ram.write(idx, value);
                 }
-                // cpu.i += x as u16 + 1;
+                cpu.i += x as u16 + 1;
+                cpu.pc += OPCODE_SIZE;
+
             }
             Op::_Fx65(x) => {
                 for reg in 0..=x {
@@ -469,8 +511,21 @@ impl Chip8 {
                     let value = ram.read(idx);
                     cpu.write_register(reg, value);
                 }
-                // cpu.i += x as u16 + 1;
+                cpu.i += x as u16 + 1;
+                cpu.pc += OPCODE_SIZE;
             }
         };
     }
+}
+
+
+#[test]
+fn fx33() {
+    let vx = 0x12;
+    let hundreds = vx / 100;
+    let tens = (vx / 10) % 10;
+    let ones = (vx % 10) as u8;
+    assert!(hundreds == 0);
+    assert!(tens == 1);
+    assert!(ones == 8);
 }

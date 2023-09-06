@@ -8,7 +8,7 @@ pub struct Cpu {
     pub pc: u16,
     pub sp: u8,
     pub i: u16,
-    pub stack: [u16; STACK_SIZE],
+    stack: [u16; STACK_SIZE],
     register: [u8; 16],
 }
 
@@ -34,7 +34,8 @@ impl Cpu {
 
         if self.sound_timer > 0 {
             if self.sound_timer == 1 {
-                // println!("todo: sound beep!");
+                // Yes, currently we don't have sound support
+                // > TODO: add sound support
             }
             self.sound_timer -= 1;
         }
@@ -56,5 +57,19 @@ impl Cpu {
     pub fn stack_pop(&mut self) -> u16 {
         self.sp -= 1;
         self.stack[self.sp as usize]
+    }
+
+    #[cfg(feature = "profile")]
+    pub fn stack_profile(&self) {
+        for (idx, value) in self.stack.iter().enumerate() {
+            println!("  s{:x}: {:x}", idx, value);
+        }
+    }
+
+    #[cfg(feature = "profile")]
+    pub fn stack_register(&self) {
+        for (idx, value) in self.register.iter().enumerate() {
+            println!("  v{:x}: {:x}", idx, value);
+        }
     }
 }
