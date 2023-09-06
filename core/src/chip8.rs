@@ -170,7 +170,6 @@ pub struct Chip8 {
     keyboard: Keyboard,
 }
 
-
 impl Chip8 {
     pub fn new() -> Self {
         let mut chip = Chip8 {
@@ -199,7 +198,6 @@ impl Chip8 {
         }
     }
 
-
     #[cfg(feature = "profile")]
     fn profile(&self) {
         println!("pc: {:x}", self.cpu.pc);
@@ -213,7 +211,7 @@ impl Chip8 {
     pub fn emulate_cycle(&mut self) {
         #[cfg(feature = "profile")]
         let old_state = self.clone();
-        
+
         let opcode = self.fetch_and_decode();
         #[cfg(feature = "profile")]
         {
@@ -224,7 +222,7 @@ impl Chip8 {
         }
 
         match opcode {
-            Ok(opcode) =>  self.run_instruction(opcode),
+            Ok(opcode) => self.run_instruction(opcode),
             // Err(_) => self.cpu.pc += OPCODE_SIZE,
             Err(err) => panic!("Unknown opcode: {:?}", err),
         }
@@ -264,10 +262,10 @@ impl Chip8 {
 
         use Opcode as Op;
         match opcode {
-            Op::_00e0 =>{ 
+            Op::_00e0 => {
                 display.clear();
                 cpu.pc += OPCODE_SIZE;
-            },
+            }
             Op::_00ee => {
                 // When we enter in a subroutine, we push the current address to the stack.
                 // so to exit it, we just need to pop the last address from the stack and set the PC to it.
@@ -280,7 +278,6 @@ impl Chip8 {
                 // To enter in a subroutine, we push the next address to the stack.
                 cpu.stack_push(cpu.pc);
                 cpu.pc = nnn;
-                
             }
             Op::_3xnn(x, nn) => {
                 let vx = cpu.read_register(x);
@@ -295,7 +292,6 @@ impl Chip8 {
                     cpu.pc += OPCODE_SIZE;
                 }
                 cpu.pc += OPCODE_SIZE;
-
             }
             Op::_5xy0(x, y) => {
                 let vx = cpu.read_register(x);
@@ -304,12 +300,11 @@ impl Chip8 {
                     cpu.pc += OPCODE_SIZE;
                 }
                 cpu.pc += OPCODE_SIZE;
-
             }
             Op::_6xnn(x, nn) => {
                 cpu.write_register(x, nn);
                 cpu.pc += OPCODE_SIZE;
-            },
+            }
             Op::_7xnn(x, nn) => {
                 let vx = cpu.read_register(x);
                 cpu.write_register(x, vx.wrapping_add(nn));
@@ -324,7 +319,6 @@ impl Chip8 {
                 let or = cpu.read_register(x) | cpu.read_register(y);
                 cpu.write_register(x, or);
                 cpu.pc += OPCODE_SIZE;
-
             }
             Op::_8xy2(x, y) => {
                 let and = cpu.read_register(x) & cpu.read_register(y);
@@ -387,7 +381,7 @@ impl Chip8 {
             Op::_Annn(nnn) => {
                 cpu.i = nnn;
                 cpu.pc += OPCODE_SIZE;
-            },
+            }
             Op::_Bnnn(nnn) => {
                 let v0 = cpu.read_register(0);
                 cpu.pc = nnn + v0 as u16;
@@ -448,7 +442,7 @@ impl Chip8 {
             Op::_Fx07(x) => {
                 cpu.write_register(x, cpu.delay_timer);
                 cpu.pc += OPCODE_SIZE;
-            },
+            }
             Op::_Fx0a(x) => {
                 // Wait for a key press, then store it in VX
                 let mut pressed = false;
@@ -462,15 +456,16 @@ impl Chip8 {
                 // If no key is pressed, we need to repeat the instruction
                 if pressed {
                     cpu.pc += OPCODE_SIZE;
-                    
                 }
             }
-            Op::_Fx15(x) => {cpu.delay_timer = cpu.read_register(x); 
+            Op::_Fx15(x) => {
+                cpu.delay_timer = cpu.read_register(x);
                 cpu.pc += OPCODE_SIZE;
-            },
-            Op::_Fx18(x) => {cpu.sound_timer = cpu.read_register(x); 
+            }
+            Op::_Fx18(x) => {
+                cpu.sound_timer = cpu.read_register(x);
                 cpu.pc += OPCODE_SIZE;
-            },
+            }
             Op::_Fx1e(x) => {
                 let vx = cpu.read_register(x);
                 cpu.i = cpu.i.wrapping_add(vx as u16);
@@ -503,7 +498,6 @@ impl Chip8 {
                 }
                 cpu.i += x as u16 + 1;
                 cpu.pc += OPCODE_SIZE;
-
             }
             Op::_Fx65(x) => {
                 for reg in 0..=x {
@@ -516,16 +510,4 @@ impl Chip8 {
             }
         };
     }
-}
-
-
-#[test]
-fn fx33() {
-    let vx = 0x12;
-    let hundreds = vx / 100;
-    let tens = (vx / 10) % 10;
-    let ones = (vx % 10) as u8;
-    assert!(hundreds == 0);
-    assert!(tens == 1);
-    assert!(ones == 8);
 }

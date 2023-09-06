@@ -1,10 +1,8 @@
-
 use core::chip8::Chip8;
 
 use js_sys::Uint8Array;
 use wasm_bindgen::prelude::*;
-use web_sys::{CanvasRenderingContext2d, KeyboardEvent, HtmlCanvasElement};
-
+use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement, KeyboardEvent};
 
 #[wasm_bindgen]
 pub struct Emulator {
@@ -25,8 +23,10 @@ impl Emulator {
             .map_err(|_| ())
             .unwrap();
 
-        let ctx = canvas.get_context("2d")
-            .unwrap().unwrap()
+        let ctx = canvas
+            .get_context("2d")
+            .unwrap()
+            .unwrap()
             .dyn_into::<CanvasRenderingContext2d>()
             .unwrap();
 
@@ -61,7 +61,7 @@ impl Emulator {
     }
 
     #[wasm_bindgen]
-     pub fn draw(&mut self, scale: usize) {
+    pub fn draw(&mut self, scale: usize) {
         let display = self.chip8.get_display();
         for (idx, on) in display.screen.iter().enumerate() {
             if *on {
@@ -70,7 +70,7 @@ impl Emulator {
                     (x * scale) as f64,
                     (y * scale) as f64,
                     scale as f64,
-                    scale as f64
+                    scale as f64,
                 );
             }
         }
@@ -107,7 +107,6 @@ fn key2btn(key: &str) -> Option<u8> {
         "x" => Some(0x0),
         "c" => Some(0xB),
         "v" => Some(0xF),
-        _ =>   None,
+        _ => None,
     }
 }
-
