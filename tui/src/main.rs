@@ -6,9 +6,11 @@ use std::{
     fs::{self},
     io::{self},
     path::Path,
-    thread,
     time::{Duration, Instant},
 };
+
+#[cfg(feature = "profile")]
+use std::thread;
 
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
@@ -40,16 +42,16 @@ fn main() -> Result<(), Box<dyn Error>> {
         thread::sleep(Duration::from_millis(((1.0 / 10 as f64) * 50.0) as u64));
         chip8.emulate_cycle();
         chip8.tick_timers();
-        // for (idx, on) in chip8.get_display().screen.iter().enumerate() {
-        //     if *on {
-        //         print!("X");
-        //     } else {
-        //         print!(".");
-        //     }
-        //     if idx % SCREEN_WIDTH == 0 {
-        //         println!();
-        //     }
-        // }
+        for (idx, on) in chip8.get_display().screen.iter().enumerate() {
+            if *on {
+                print!("X");
+            } else {
+                print!(".");
+            }
+            if idx % SCREEN_WIDTH == 0 {
+                println!();
+            }
+        }
     }
 
     // setup terminal
@@ -61,9 +63,6 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // create emulator
     let tick_rate = Duration::from_millis(1);
-
-    // let mut chip8 = core::chip8::Chip8::new();
-    // chip8.load(&*rom);
 
     // run
     let res = run_emulator(&mut terminal, chip8, tick_rate);
@@ -93,13 +92,12 @@ fn run_emulator<B: Backend>(
     loop {
         chip8.clean_keyboard();
         
-        
         let timeout = tick_rate
         .checked_sub(last_tick.elapsed())
         .unwrap_or_else(|| Duration::from_secs(0));
         if event::poll(timeout)? {
             if let Event::Key(key) = event::read()? {
-                if let Some(code) = key2code(key.code, &mut chip8) {
+                if let Some(code) = key2code(key.code) {
                     chip8.keypress(code, false);
                 }
                 if let KeyCode::Esc = key.code {
@@ -152,7 +150,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, chip8: &Chip8, scale: usize) {
     | Z | X | C | V |           | A | 0 | B | F |
     +---+---+---+---+           +---+---+---+---+
 */
-fn key2code(keycode: KeyCode, chip8: &mut Chip8) -> Option<u8> {
+fn key2code(keycode: KeyCode) -> Option<u8> {
     match keycode {
         KeyCode::Char('1') => Some(0x1),
         KeyCode::Char('2') => Some(0x2),
