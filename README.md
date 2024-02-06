@@ -1,15 +1,20 @@
 # Chip-8
 
-A simple Chip-8 emulator written in Rust and compiled to WebAssembly. 
+![](./assets/pong.gif)
 
-It passes all the test from [Timendus Chip-8 test suite](https://github.com/Timendus/chip8-test-suite) and it works with PONG too.
+A simple CHIP-8 emulator written in Rust and compiled to WebAssembly.
 
+It passes all the test from [Timendus CHIP-8 test suite](https://github.com/Timendus/chip8-test-suite) and it works with PONG too.
+
+> Why its flickering?
+
+It's due to the way CHIP-8 handles the draw operation. It draws the sprites with XOR, so if a pixel is already on, it will be turned off. This is why the flickering happens.
 
 > Lack of sound effects.
 
-Chip-8 doesnt have a good sound system, so I decided to not implement it.
+CHIP-8 doesnt have a good sound system, so I decided to not implement it.
 
-## Usage 
+## Usage
 
 ```bash
 cd wasm/web
@@ -30,9 +35,10 @@ mv ./pkg/wasm.js ./web
 ```
 
 ### More info
+
 Good reading:
 
 - [Wikipedia Page](https://en.wikipedia.org/wiki/CHIP-8)
-- [Write a Chip-8 Emulator](https://tobiasvl.github.io/blog/write-a-chip-8-emulator/)
-- [Matthew Mikolay Chip 8 Technical Reference](https://github.com/mattmikolay/chip-8/wiki/CHIP%E2%80%908-Technical-Reference)
+- [Write a CHIP-8 Emulator](https://tobiasvl.github.io/blog/write-a-chip-8-emulator/)
+- [Matthew Mikolay CHIP-8 Technical Reference](https://github.com/mattmikolay/chip-8/wiki/CHIP%E2%80%908-Technical-Reference)
 - [awesome-chip-8](https://github.com/tobiasvl/awesome-chip-8)
