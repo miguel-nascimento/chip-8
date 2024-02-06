@@ -1,23 +1,100 @@
-<!DOCTYPE html>
 <html>
-    <head>
-        <title>Chip-8 Emulator</title>
-        <meta charset="utf-8">
-        <style>
-            html {
-                text-align: center;
-                font-family: "Arial", "Helvetica", sans-serif;
-                background-color: #0c0c0c;
-                color: #fff;
-            }
-        </style>
-    </head>
-    <body>
-        <h1>Chip-8 Emulator</h1>
-        <label for="rom">Rom: </label>
-        <input type="file" id="rom" autocomplete="off"/>
-        <br/>
-        <canvas id="canvas"></canvas>
-    </body>
-    <script type="module" src="index.js"></script>
+  <head>
+    <title>Chip-8 Emulator</title>
+    <meta charset="utf-8" />
+    <style>
+      html {
+        text-align: center;
+        font-family: "Arial", "Helvetica", sans-serif;
+        background: #18181b;
+        color: #e4e4e7;
+        padding: 16px 24px;
+      }
+    </style>
+    <script src="https://cdn.tailwindcss.com" defer></script>
+  </head>
+  <body>
+    <h1 class="text-4xl">Chip-8 Emulator</h1>
+    <div class="pt-6" />
+
+    <label
+      for="rom"
+      class="rounded-sm border border-zinc-600 bg-zinc-700 px-1 py-1.5"
+    >
+      <input type="file" id="rom" class="hidden" />
+      Upload your ROM
+    </label>
+
+    <div class="pt-6" />
+
+    <div class="flex justify-center gap-4">
+      <div>
+        <table class="table-auto border-collapse border border-zinc-500">
+          <caption class="caption-top lower text-zinc-300">
+            Keyboard
+          </caption>
+          <tr>
+            <td class="border border-zinc-600 tabular-nums p-1.5">1</td>
+            <td class="border border-zinc-600 tabular-nums p-1.5">2</td>
+            <td class="border border-zinc-600 tabular-nums p-1.5">3</td>
+            <td class="border border-zinc-600 tabular-nums p-1.5">4</td>
+          </tr>
+          <tr>
+            <td class="border border-zinc-600 tabular-nums p-1.5">Q</td>
+            <td class="border border-zinc-600 tabular-nums p-1.5">W</td>
+            <td class="border border-zinc-600 tabular-nums p-1.5">E</td>
+            <td class="border border-zinc-600 tabular-nums p-1.5">R</td>
+          </tr>
+          <tr>
+            <td class="border border-zinc-600 tabular-nums p-1.5">A</td>
+            <td class="border border-zinc-600 tabular-nums p-1.5">S</td>
+            <td class="border border-zinc-600 tabular-nums p-1.5">D</td>
+            <td class="border border-zinc-600 tabular-nums p-1.5">F</td>
+          </tr>
+          <tr>
+            <td class="border border-zinc-600 tabular-nums p-1.5">Z</td>
+            <td class="border border-zinc-600 tabular-nums p-1.5">X</td>
+            <td class="border border-zinc-600 tabular-nums p-1.5">C</td>
+            <td class="border border-zinc-600 tabular-nums p-1.5">V</td>
+          </tr>
+        </table>
+      </div>
+      <div>
+        <table class="table-auto border-collapse border border-zinc-500">
+          <caption class="caption-top text-zinc-300">
+            CHIP-8 keys
+          </caption>
+          <tr>
+            <td class="border border-zinc-600 tabular-nums p-1.5">1</td>
+            <td class="border border-zinc-600 tabular-nums p-1.5">2</td>
+            <td class="border border-zinc-600 tabular-nums p-1.5">3</td>
+            <td class="border border-zinc-600 tabular-nums p-1.5">C</td>
+          </tr>
+          <tr>
+            <td class="border border-zinc-600 tabular-nums p-1.5">4</td>
+            <td class="border border-zinc-600 tabular-nums p-1.5">5</td>
+            <td class="border border-zinc-600 tabular-nums p-1.5">6</td>
+            <td class="border border-zinc-600 tabular-nums p-1.5">D</td>
+          </tr>
+          <tr>
+            <td class="border border-zinc-600 tabular-nums p-1.5">7</td>
+            <td class="border border-zinc-600 tabular-nums p-1.5">8</td>
+            <td class="border border-zinc-600 tabular-nums p-1.5">9</td>
+            <td class="border border-zinc-600 tabular-nums p-1.5">E</td>
+          </tr>
+          <tr>
+            <td class="border border-zinc-600 tabular-nums p-1.5">A</td>
+            <td class="border border-zinc-600 tabular-nums p-1.5">0</td>
+            <td class="border border-zinc-600 tabular-nums p-1.5">B</td>
+            <td class="border border-zinc-600 tabular-nums p-1.5">F</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="flex justify-center pt-8">
+      <canvas id="canvas"></canvas>
+    </div>
+  </body>
+  <script type="module" src="index.js"></script>
 </html>

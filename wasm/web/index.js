@@ -4,8 +4,8 @@ const WIDTH = 64;
 const HEIGHT = 32;
 const SCALE = 15;
 
-const BG_COLOR = "#000000";
-const PRIMARY_COLOR = "#FFFFFF";
+const BG_COLOR = "#09090b";
+const PRIMARY_COLOR = "#e4e4e7";
 
 const TICKS_PER_FRAME = 10;
 let last_tick = 0;
@@ -61,7 +61,7 @@ const main = async () => {
     },
     false
   );
-}
+};
 
 function gameloop(chip8) {
   for (let i = 0; i < TICKS_PER_FRAME; i++) {
